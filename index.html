@@ -25,6 +25,8 @@
       margin-bottom: 20px;
       display: flex;
       gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
     }
     input#city {
       padding: 10px;
@@ -32,6 +34,7 @@
       border-radius: 5px;
       border: none;
       width: 250px;
+      min-width: 200px;
     }
     button {
       padding: 10px 20px;
@@ -46,12 +49,18 @@
     button:hover {
       background-color: #2980b9;
     }
+    button:disabled {
+      background-color: #7fbce0;
+      cursor: not-allowed;
+    }
     #weather-result {
       max-width: 600px;
+      width: 100%;
       background: rgba(0,0,0,0.3);
       padding: 20px;
       border-radius: 8px;
       box-shadow: 0 0 10px rgba(0,0,0,0.5);
+      margin-bottom: 20px;
     }
     .hidden {
       display: none;
@@ -61,6 +70,7 @@
       align-items: center;
       gap: 20px;
       margin-bottom: 20px;
+      flex-wrap: wrap;
     }
     .current img {
       width: 80px;
@@ -79,11 +89,23 @@
       flex: 1 1 150px;
       text-align: center;
       box-shadow: inset 0 0 5px rgba(255,255,255,0.3);
+      min-width: 120px;
     }
     .forecast-day img {
       width: 50px;
       height: 50px;
       margin-bottom: 5px;
+    }
+    .error {
+      color: #ff6b6b;
+      background: rgba(255,255,255,0.1);
+      padding: 15px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .loading {
+      text-align: center;
+      padding: 20px;
     }
 
     /* Модальное окно */
@@ -127,30 +149,158 @@
 </head>
 <body>
 
-  <h1>Погодное приложение</h1>
+<!-- Add this in head -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <form id="weather-form">
-    <input id="city" type="text" placeholder="Введите город" required />
-    <button type="submit">Узнать погоду</button>
+<div style="
+   
+  backdrop-filter: blur(10px);
+  padding: 2.5rem;
+  border-radius: 20px;
+  
+  width: 100%;
+  max-width: 450px;
+  text-align: center;
+  animation: slideUp 0.6s ease-out;
+">
+  <div class="header" style="text-align: center; margin-bottom: 2rem;">
+    <div class="header-icon" style="
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 1rem;
+      color: white;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      font-size: 1.5rem;
+    ">
+      <i class="fas fa-cloud-sun"></i>
+    </div>
+    <h1 style="
+      color: #2d3748;
+      margin-bottom: 0.5rem;
+      font-size: 2rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    ">Погодное приложение</h1>
+    <div class="subtitle" style="
+      color: #718096;
+      font-size: 0.95rem;
+    ">Узнайте погоду в любом городе мира</div>
+  </div>
+
+  <form id="weather-form" style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 1.5rem;">
+    <div class="input-group" style="position: relative; display: flex; align-items: center;">
+      <div class="input-icon" style="
+        position: absolute;
+        left: 15px;
+        color: #a0aec0;
+        z-index: 2;
+      ">
+        <i class="fas fa-map-marker-alt"></i>
+      </div>
+      <input id="city" type="text" placeholder="Введите город" required style="
+        flex: 1;
+        padding: 12px 16px 12px 45px;
+        border: 2px solid #e2e8f0;
+        border-radius: 12px;
+        font-size: 1rem;
+        transition: all 0.3s ease;
+        background: #f8fafc;
+        width: 100%;
+      ">
+    </div>
+    <button type="submit" id="submit-btn" style="
+      padding: 12px 20px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: white;
+      border: none;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    ">
+      <i class="fas fa-search button-icon"></i>
+      Узнать погоду
+    </button>
   </form>
 
-  <div id="weather-result" class="hidden"></div>
+  <div id="weather-result" class="hidden" style="margin-top: 1.5rem;"></div>
+</div>
 
-  <!-- Модальное окно -->
-  <div id="modal">
-    <div class="modal">
-      <p>Хотите показать погоду по вашему местоположению?</p>
-      <div class="modal-buttons">
-        <button id="yes-location">Да</button>
-        <button id="no-location">Нет</button>
-      </div>
-    </div>
-  </div>
+<style>
+  @keyframes slideUp {
+    from { 
+      opacity: 0; 
+      transform: translateY(30px); 
+    }
+    to { 
+      opacity: 1; 
+      transform: translateY(0); 
+    }
+  }
+
+  input:focus {
+    outline: none;
+    border-color: #667eea;
+    background: white;
+    box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+  }
+
+  input::placeholder {
+    color: #a0aec0;
+  }
+
+  button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  button:active {
+    transform: translateY(0);
+  }
+
+  button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  @media (max-width: 480px) {
+    .container {
+      padding: 1.5rem;
+      margin: 10px;
+    }
+    
+    .header h1 {
+      font-size: 1.7rem;
+    }
+    
+    .header-icon {
+      width: 50px;
+      height: 50px;
+      font-size: 1.2rem;
+    }
+  }
+</style>
 
   <script>
     document.addEventListener('DOMContentLoaded', () => {
       const form = document.getElementById('weather-form');
       const input = document.getElementById('city');
+      const submitBtn = document.getElementById('submit-btn');
       const result = document.getElementById('weather-result');
 
       const modal = document.getElementById('modal');
@@ -158,32 +308,20 @@
       const noBtn = document.getElementById('no-location');
 
       // Показать модальное окно при загрузке
-      modal.style.display = 'flex';
+      setTimeout(() => {
+        modal.style.display = 'flex';
+      }, 500);
 
-      form.addEventListener('submit', (e) => {
+      form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const city = input.value.trim();
         if (!city) return;
-        getWeather(city);
+        await getWeather(city);
       });
 
       yesBtn.addEventListener('click', async () => {
         modal.style.display = 'none';
-        try {
-          const res = await fetch('https://ipapi.co/json/');
-          const data = await res.json();
-          const city = data?.city || '';
-          if (city) {
-            input.value = city;
-            getWeather(city);
-          } else {
-            result.innerHTML = 'Город по IP не определён';
-            result.classList.remove('hidden');
-          }
-        } catch (err) {
-          result.innerHTML = 'Ошибка при определении местоположения';
-          result.classList.remove('hidden');
-        }
+        await getLocationByIP();
       });
 
       noBtn.addEventListener('click', () => {
@@ -198,58 +336,166 @@
         if (url.startsWith('//')) {
           return 'https:' + url;
         }
-        return url;
+        return 'https://' + url.replace(/^\/\//, '');
       }
 
-      async function getWeather(city) {
-        result.innerHTML = 'Загрузка...';
-        result.classList.remove('hidden');
+      async function getLocationByIP() {
+        setLoadingState(true);
+        try {
+          const res = await fetch('https://ipapi.co/json/');
+          if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+          
+          const data = await res.json();
+          const city = data?.city || '';
+          
+          if (city) {
+            input.value = city;
+            await getWeather(city);
+          } else {
+            showError('Город по IP не определён');
+          }
+        } catch (err) {
+          console.error('Location error:', err);
+          showError('Ошибка при определении местоположения');
+        } finally {
+          setLoadingState(false);
+        }
+      }
+
+      async function getWeather(city, retryCount = 0) {
+        setLoadingState(true);
+        showLoading('Загрузка погоды...');
 
         try {
-          const res = await fetch(`https://wttr.in/${city}?format=j1`);
-          const data = await res.json();
+          // Добавляем таймаут и retry логику
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 секунд таймаут
 
-          const area = data?.nearest_area?.[0]?.areaName?.[0]?.value || city;
+          const response = await fetch(`https://wttr.in/${encodeURIComponent(city)}?format=j1`, {
+            signal: controller.signal
+          });
+          
+          clearTimeout(timeoutId);
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const data = await response.json();
+
+          // Валидация данных
+          if (!data || !data.current_condition || !data.weather) {
+            throw new Error('Invalid weather data received');
+          }
+
+          displayWeather(data, city);
+          
+        } catch (error) {
+          console.error('Weather fetch error:', error);
+          
+          // Retry логика (максимум 2 попытки)
+          if (retryCount < 2) {
+            console.log(`Retrying... attempt ${retryCount + 1}`);
+            await new Promise(resolve => setTimeout(resolve, 1000 * (retryCount + 1)));
+            return getWeather(city, retryCount + 1);
+          }
+
+          if (error.name === 'AbortError') {
+            showError('Превышено время ожидания ответа от сервера');
+          } else if (error.message.includes('Failed to fetch')) {
+            showError('Ошибка соединения. Проверьте интернет-соединение');
+          } else {
+            showError('Не удалось получить погоду для этого города');
+          }
+        } finally {
+          setLoadingState(false);
+        }
+      }
+
+      function displayWeather(data, requestedCity) {
+        try {
+          const area = data?.nearest_area?.[0]?.areaName?.[0]?.value || requestedCity;
           const region = data?.nearest_area?.[0]?.region?.[0]?.value || '';
           const country = data?.nearest_area?.[0]?.country?.[0]?.value || '';
           const current = data?.current_condition?.[0];
-          const days = data?.weather;
+          const days = data?.weather || [];
 
           if (!current) {
-            result.innerHTML = 'Не удалось получить погоду 😢';
+            showError('Не удалось получить данные о погоде');
             return;
           }
 
-          const currentIcon = fixUrl(current.weatherIconUrl?.[0]?.value);
-          
+          // Безопасное получение URL иконки
+          const currentIconUrl = current.weatherIconUrl?.[0]?.value;
+          const currentIcon = currentIconUrl ? fixUrl(currentIconUrl) : '';
+
+          let forecastHTML = '';
+          if (days.length > 0) {
+            forecastHTML = `
+              <h3>Прогноз на ${Math.min(days.length, 3)} дня</h3>
+              <div class="forecast">
+                ${days.slice(0, 3).map(day => {
+                  const hourly = day.hourly?.[4] || day.hourly?.[0] || {};
+                  const dayIconUrl = hourly.weatherIconUrl?.[0]?.value;
+                  const dayIcon = dayIconUrl ? fixUrl(dayIconUrl) : '';
+                  
+                  return `
+                    <div class="forecast-day">
+                      <p><strong>${day.date || 'Неизвестно'}</strong></p>
+                      ${dayIcon ? `<img src="${dayIcon}" alt="icon" onerror="this.style.display='none'">` : ''}
+                      <p>${hourly.weatherDesc?.[0]?.value || 'Нет данных'}</p>
+                      <p>🌡 Макс: ${day.maxtempC || 'N/A'}°C</p>
+                      <p>🌡 Мин: ${day.mintempC || 'N/A'}°C</p>
+                    </div>
+                  `;
+                }).join('')}
+              </div>
+            `;
+          }
+
           result.innerHTML = `
-            <h2>${area}, ${region}, ${country}</h2>
+            <h2>${area}${region ? ', ' + region : ''}${country ? ', ' + country : ''}</h2>
             <div class="current">
-              ${currentIcon ? `<img src="${currentIcon}" alt="icon">` : ''}
-              <p>${current.weatherDesc[0].value}</p>
-              <p>🌡 ${current.temp_C}°C</p>
-              <p>💧 ${current.humidity}%</p>
-              <p>💨 ${current.windspeedKmph} км/ч</p>
+              ${currentIcon ? `<img src="${currentIcon}" alt="icon" onerror="this.style.display='none'">` : ''}
+              <div>
+                <p>${current.weatherDesc?.[0]?.value || 'Нет данных'}</p>
+                <p>🌡 ${current.temp_C || 'N/A'}°C</p>
+                <p>💧 ${current.humidity || 'N/A'}%</p>
+                <p>💨 ${current.windspeedKmph || 'N/A'} км/ч</p>
+              </div>
             </div>
-            <h3>Прогноз на 3 дня</h3>
-            <div class="forecast">
-              ${days.slice(0, 5).map(day => {
-                const icon = fixUrl(day.hourly?.[4]?.weatherIconUrl?.[0]?.value);
-                return `
-                  <div class="forecast-day">
-                    <p><strong>${day.date}</strong></p>
-                    ${icon ? `<img src="${icon}" alt="icon">` : ''}
-                    <p>${day.hourly[4].weatherDesc[0].value}</p>
-                    <p>🌡 Макс: ${day.maxtempC}°C</p>
-                    <p>🌡 Мин: ${day.mintempC}°C</p>
-                  </div>
-                `;
-              }).join('')}
-            </div>
+            ${forecastHTML}
           `;
+          
+          result.classList.remove('hidden');
         } catch (error) {
-          result.innerHTML = 'Произошла ошибка 😓';
+          console.error('Display error:', error);
+          showError('Ошибка при отображении данных о погоде');
         }
+      }
+
+      function showLoading(message) {
+        result.innerHTML = `
+          <div class="loading">
+            <p>${message}</p>
+          </div>
+        `;
+        result.classList.remove('hidden');
+      }
+
+      function showError(message) {
+        result.innerHTML = `
+          <div class="error">
+            <p>${message}</p>
+            <p><small>Попробуйте другой город или повторите позже</small></p>
+          </div>
+        `;
+        result.classList.remove('hidden');
+      }
+
+      function setLoadingState(isLoading) {
+        submitBtn.disabled = isLoading;
+        submitBtn.textContent = isLoading ? 'Загрузка...' : 'Узнать погоду';
       }
     });
   </script>
